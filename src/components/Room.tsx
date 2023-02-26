@@ -50,7 +50,11 @@ function Room({client}: { client: Client }) {
             const peerConnection = new RTCPeerConnection(configuration);
             try {
                 setConnection(peerConnection);
-                const descriptionInit = await peerConnection.createOffer();
+                const descriptionInit = await peerConnection.createOffer({
+                    iceRestart: true,
+                    offerToReceiveAudio: true,
+                    offerToReceiveVideo: true
+                });
                 const roomAnswersClose = client.getRoomAnswers(async (answer) => {
                     console.log("ANSWER", answer);
                     if (answer && answer.sdp && answer.type) {
