@@ -90,7 +90,7 @@ function Room({client}: { client: Client }) {
                 connection.removeEventListener('icecandidate', listener);
             }
         }
-    }, [])
+    }, [connection, client]);
 
     useEffect(() => {
         return () => {
