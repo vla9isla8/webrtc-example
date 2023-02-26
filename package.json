@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc && vite build",
+    "build": "BASE_URL=https://vla9isla8.github.io/webrtc-example/ vite build",
     "preview": "vite preview"
   },
   "dependencies": {
