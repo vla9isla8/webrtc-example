@@ -1,0 +1,14 @@
+.login-forms {
+    display: flex;
+    flex-wrap: wrap;
+}
+
+.login-forms .login-form-title {
+    width: 100%;
+}
+
+.login-forms .form {
+    flex: 1;
+    padding: 16px;
+    box-sizing: border-box;
+}
