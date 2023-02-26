@@ -1,47 +1,53 @@
-import {useEffect, useRef} from "react";
+import {useEffect, useRef, useState} from "react";
+import "./styles.css";
 
 function Call({connection}: { connection: RTCPeerConnection }) {
     const ref = useRef<HTMLVideoElement>(null);
-    const {iceGatheringState, connectionState, iceConnectionState} = connection;
-    console.log({
-        iceGatheringState,
-        connectionState,
-        iceConnectionState
-    })
+
+    const [state, setState] = useState<RTCPeerConnectionState>(connection.connectionState);
+
     useEffect(() => {
-        connection.addEventListener("iceconnectionstatechange", () => {
-            const {iceConnectionState} = connection;
-            console.log({
-                iceConnectionState
-            })
-        });
-        connection.addEventListener("connectionstatechange", async () => {
-            const {connectionState} = connection;
-            console.log({
-                connectionState
-            })
-            if (connection.connectionState === 'connected') {
-                const constraints = {'video': true, 'audio': true};
-                const stream = await navigator.mediaDevices.getUserMedia(constraints);
+        const listener = () => {
+            setState(connection.connectionState);
+        };
+        connection.addEventListener("connectionstatechange", listener);
+        return () => connection.removeEventListener("connectionstatechange", listener);
+    }, [connection])
+
+    useEffect(() => {
+        if (state === 'connected') {
+            const constraints = {'video': true, 'audio': true};
+            navigator.mediaDevices.getUserMedia(constraints).then(stream => {
                 stream.getTracks().forEach(track => {
                     connection.addTrack(track, stream);
                 });
-            }
-        });
-    }, [connection])
+            });
+        }
+    }, [state, connection])
 
     useEffect(() => {
         const videoElement = ref.current;
         if (videoElement) {
             const onTrack = (ev: RTCTrackEvent) => {
-                videoElement.srcObject = ev.streams[0];
+                for (let stream of ev.streams) {
+                    console.log(stream, stream.active);
+                    if (stream.active) {
+                        videoElement.srcObject = stream;
+                        return;
+                    }
+                }
             };
             connection.addEventListener("track", onTrack)
             return () => connection.removeEventListener("track", onTrack)
         }
     }, [connection]);
 
-    return <video ref={ref} autoPlay/>
+    return (
+        <p>
+            <h5>{state}</h5>
+            <video className="video" ref={ref} autoPlay controls/>
+        </p>
+    );
 }
 
 export default Call;

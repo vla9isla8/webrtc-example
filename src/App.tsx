@@ -20,7 +20,7 @@ function App() {
     }
 
     return (
-        <Room client={client}/>
+        <Room/>
     )
 }
 
