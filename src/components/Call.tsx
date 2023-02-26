@@ -1,4 +1,4 @@
-import {useEffect, useRef, useState} from "react";
+import {useEffect, useLayoutEffect, useRef, useState} from "react";
 import "./styles.css";
 
 function Call({connection}: { connection: RTCPeerConnection }) {
@@ -16,6 +16,16 @@ function Call({connection}: { connection: RTCPeerConnection }) {
 
     useEffect(() => {
         if (state === 'connected') {
+            const dataChannel = connection.createDataChannel("text");
+            dataChannel.addEventListener("open", () => {
+                console.log("Opened!")
+                dataChannel.send("Hi!");
+                console.log("sent!")
+            })
+            dataChannel.addEventListener("error", ev => {
+                console.log("Error!", ev)
+            });
+            dataChannel.addEventListener("message", console.log);
             const constraints = {'video': true, 'audio': true};
             navigator.mediaDevices.getUserMedia(constraints).then(stream => {
                 stream.getTracks().forEach(track => {
@@ -25,28 +35,23 @@ function Call({connection}: { connection: RTCPeerConnection }) {
         }
     }, [state, connection])
 
-    useEffect(() => {
-        const videoElement = ref.current;
-        if (videoElement) {
-            const onTrack = (ev: RTCTrackEvent) => {
-                for (let stream of ev.streams) {
-                    console.log(stream, stream.active);
-                    if (stream.active) {
-                        videoElement.srcObject = stream;
-                        return;
-                    }
-                }
-            };
-            connection.addEventListener("track", onTrack)
-            return () => connection.removeEventListener("track", onTrack)
-        }
+    useLayoutEffect(() => {
+        const onTrack = (ev: RTCTrackEvent) => {
+            const [remoteStream] = ev.streams;
+            console.log(remoteStream);
+            if (ref.current) {
+                ref.current.srcObject = remoteStream;
+            }
+        };
+        connection.addEventListener("track", onTrack)
+        return () => connection.removeEventListener("track", onTrack)
     }, [connection]);
 
     return (
-        <p>
+        <div className="video">
             <h5>{state}</h5>
-            <video className="video" ref={ref} autoPlay controls/>
-        </p>
+            <video ref={ref} controls/>
+        </div>
     );
 }
 
