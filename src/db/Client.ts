@@ -119,7 +119,7 @@ class Client {
         });
     }
 
-    public sendIceCandidate(candidate: RTCIceCandidate | null) {
+    public sendIceCandidate(candidate: RTCIceCandidateInit | null) {
         if (candidate) {
             const username = gunInstance.user().is?.alias;
             if (!username || typeof username === "object") {
@@ -127,20 +127,31 @@ class Client {
             }
             gunInstance.get("ice-candidate").put({
                 username,
-                ...candidate
+                candidate: candidate.candidate,
+                usernameFragment: candidate.usernameFragment,
+                sdpMid: candidate.sdpMid,
+                sdpMLineIndex: candidate.sdpMLineIndex
             });
         }
     }
 
-    public readIceCandidates(callBack: (candidate: RTCIceCandidate) => void) {
+    public readIceCandidates(callBack: (candidate: RTCIceCandidateInit) => void) {
         const username = gunInstance.user().is?.alias;
         if (!username || typeof username === "object") {
             throw new Error("Unauthenticated")
         }
         const iGunChain = gunInstance.get("ice-candidate").on(data => {
-            const {username, ...candidate} = data
+            const {
+                username,
+                candidate,
+                usernameFragment,
+                sdpMid,
+                sdpMLineIndex
+            } = data as RTCIceCandidateInit & { username: string }
             if (data.username !== username) {
-                callBack(candidate);
+                callBack({
+                    candidate, usernameFragment, sdpMid, sdpMLineIndex
+                });
             }
         });
         return () => iGunChain.off();

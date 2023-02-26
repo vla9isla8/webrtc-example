@@ -79,7 +79,7 @@ function Room({client}: { client: Client }) {
             const readIceCandidatesClose = client.readIceCandidates(async (candidate) => {
                 try {
                     console.log("candidate", candidate);
-                    await connection.addIceCandidate(candidate);
+                    await connection.addIceCandidate(new RTCIceCandidate(candidate));
                     readIceCandidatesClose();
                 } catch (e) {
                     console.error('Error adding received ice candidate', e);
