@@ -2,8 +2,7 @@ import {useCallback, useEffect, useState} from "react";
 import Client from "../db/Client";
 import Call from "./Call";
 
-const configuration = {}
-
+const configuration = {'iceServers': [{'urls': 'stun:stun.l.google.com:19302'}]}
 
 function Room({client}: { client: Client }) {
     const [connection, setConnection] = useState<RTCPeerConnection | null>(null);
@@ -51,10 +50,7 @@ function Room({client}: { client: Client }) {
             const peerConnection = new RTCPeerConnection(configuration);
             try {
                 setConnection(peerConnection);
-                const descriptionInit = await peerConnection.createOffer({
-                    offerToReceiveVideo: true,
-                    offerToReceiveAudio: true
-                });
+                const descriptionInit = await peerConnection.createOffer();
                 const roomAnswersClose = client.getRoomAnswers(async (answer) => {
                     console.log("ANSWER", answer);
                     if (answer && answer.sdp && answer.type) {
@@ -71,6 +67,31 @@ function Room({client}: { client: Client }) {
             }
         }
     }, [client, connection, stopCall]);
+
+    useEffect(() => {
+        if (connection) {
+            const listener = (event: RTCPeerConnectionIceEvent) => {
+                if (event.candidate) {
+                    client.sendIceCandidate(event.candidate);
+                }
+            };
+            connection.addEventListener('icecandidate', listener);
+            const readIceCandidatesClose = client.readIceCandidates(async (candidate) => {
+                try {
+                    console.log("candidate", candidate);
+                    await connection.addIceCandidate(candidate);
+                    readIceCandidatesClose();
+                } catch (e) {
+                    console.error('Error adding received ice candidate', e);
+                }
+            });
+            return () => {
+                readIceCandidatesClose();
+                connection.removeEventListener('icecandidate', listener);
+            }
+        }
+    }, [])
+
     useEffect(() => {
         return () => {
             client.deleteMyOffer();

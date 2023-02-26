@@ -119,6 +119,33 @@ class Client {
         });
     }
 
+    public sendIceCandidate(candidate: RTCIceCandidate | null) {
+        if (candidate) {
+            const username = gunInstance.user().is?.alias;
+            if (!username || typeof username === "object") {
+                throw new Error("Unauthenticated")
+            }
+            gunInstance.get("ice-candidate").put({
+                username,
+                ...candidate
+            });
+        }
+    }
+
+    public readIceCandidates(callBack: (candidate: RTCIceCandidate) => void) {
+        const username = gunInstance.user().is?.alias;
+        if (!username || typeof username === "object") {
+            throw new Error("Unauthenticated")
+        }
+        const iGunChain = gunInstance.get("ice-candidate").on(data => {
+            const {username, ...candidate} = data
+            if (data.username !== username) {
+                callBack(candidate);
+            }
+        });
+        return () => iGunChain.off();
+    }
+
 }
 
 export default Client;
