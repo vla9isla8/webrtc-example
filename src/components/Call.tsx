@@ -9,12 +9,6 @@ function Call({connection}: { connection: RTCPeerConnection }) {
         iceConnectionState
     })
     useEffect(() => {
-        connection.addEventListener("icegatheringstatechange", () => {
-            const {iceGatheringState} = connection;
-            console.log({
-                iceGatheringState
-            })
-        });
         connection.addEventListener("iceconnectionstatechange", () => {
             const {iceConnectionState} = connection;
             console.log({

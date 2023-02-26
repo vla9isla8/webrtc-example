@@ -15,32 +15,24 @@ function Room({client}: { client: Client }) {
     }, [connection]);
 
     useEffect(() => {
-        if (!connection) {
-            const roomOffersClose = client.getRoomOffers(async (offer) => {
-                console.log("OFFER", offer);
-                if (offer && offer.sdp && offer.type) {
-                    roomOffersClose();
-                    const peerConnection = new RTCPeerConnection(configuration);
-                    try {
-                        await peerConnection.setRemoteDescription(new RTCSessionDescription(offer));
-                        if (peerConnection.connectionState === "failed") {
-                            peerConnection.close();
-                            return;
-                        }
-                        setConnection(peerConnection);
-                        const answer = await peerConnection.createAnswer();
-                        await peerConnection.setLocalDescription(answer);
-                        client.createRoomAnswer(answer);
-                    } catch (e) {
-                        console.error(e);
-                        stopCall();
-                    }
+        const roomOffersClose = client.getRoomOffers(async (offer) => {
+            console.log("OFFER", offer);
+            if (offer && offer.sdp && offer.type) {
+                const peerConnection = new RTCPeerConnection(configuration);
+                setConnection(peerConnection);
+                try {
+                    await peerConnection.setRemoteDescription(new RTCSessionDescription(offer));
+                    const answer = await peerConnection.createAnswer();
+                    await peerConnection.setLocalDescription(answer);
+                    client.createRoomAnswer(answer);
+                } catch (e) {
+                    console.error(e);
+                    stopCall();
                 }
-            });
-
-            return () => {
-                roomOffersClose();
             }
+        });
+        return () => {
+            roomOffersClose();
         }
 
     }, [client, connection, stopCall]);
@@ -48,22 +40,27 @@ function Room({client}: { client: Client }) {
     const makeCall = useCallback(async () => {
         if (!connection) {
             const peerConnection = new RTCPeerConnection(configuration);
+            const listener = (event: RTCPeerConnectionIceEvent) => {
+                if (event.candidate) {
+                    client.sendIceCandidate(event.candidate);
+                }
+            };
+            peerConnection.addEventListener('icecandidate', listener);
+            setConnection(peerConnection);
             try {
-                setConnection(peerConnection);
-                const descriptionInit = await peerConnection.createOffer({
-                    iceRestart: true,
-                    offerToReceiveAudio: true,
-                    offerToReceiveVideo: true
-                });
                 const roomAnswersClose = client.getRoomAnswers(async (answer) => {
                     console.log("ANSWER", answer);
                     if (answer && answer.sdp && answer.type) {
-                        roomAnswersClose();
                         const description = new RTCSessionDescription(answer);
-                        await peerConnection.setLocalDescription(descriptionInit);
                         await peerConnection.setRemoteDescription(description);
+                        roomAnswersClose();
                     }
                 });
+                const descriptionInit = await peerConnection.createOffer({
+                    offerToReceiveAudio: true,
+                    offerToReceiveVideo: true
+                });
+                await peerConnection.setLocalDescription(descriptionInit);
                 client.createRoomOffer(descriptionInit);
             } catch (e) {
                 console.error(e);
@@ -73,26 +70,19 @@ function Room({client}: { client: Client }) {
     }, [client, connection, stopCall]);
 
     useEffect(() => {
-        if (connection) {
-            const listener = (event: RTCPeerConnectionIceEvent) => {
-                if (event.candidate) {
-                    client.sendIceCandidate(event.candidate);
-                }
-            };
-            connection.addEventListener('icecandidate', listener);
-            const readIceCandidatesClose = client.readIceCandidates(async (candidate) => {
-                try {
-                    console.log("candidate", candidate);
+        const readIceCandidatesClose = client.readIceCandidates(async (candidate) => {
+            try {
+                console.log("candidate", candidate);
+                if (connection) {
                     await connection.addIceCandidate(candidate);
                     readIceCandidatesClose();
-                } catch (e) {
-                    console.error('Error adding received ice candidate', e);
                 }
-            });
-            return () => {
-                readIceCandidatesClose();
-                connection.removeEventListener('icecandidate', listener);
+            } catch (e) {
+                console.error('Error adding received ice candidate', e);
             }
+        });
+        return () => {
+            readIceCandidatesClose();
         }
     }, [connection, client]);
 

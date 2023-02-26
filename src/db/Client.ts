@@ -9,22 +9,22 @@ gunInstance.opt({
 });
 
 class Client {
+
     public getRoomOffers(callBack: (offer: RTCSessionDescriptionInit) => void) {
         const username = gunInstance.user().is?.alias;
         if (!username || typeof username === "object") {
             throw new Error("Unauthenticated")
         }
-        const iGunChain = gunInstance
-            .get("room")
-            .on(data => {
-                if (data.type === "offer" && data.username !== username) {
-                    callBack({
-                        sdp: data.sdp,
-                        type: data.type,
-                    })
-                }
-            });
-        return () => iGunChain.off();
+        const room = gunInstance.get("room");
+        room.on(data => {
+            if (data.type === "offer" && data.username !== username) {
+                callBack({
+                    sdp: data.sdp,
+                    type: data.type,
+                })
+            }
+        });
+        return () => room.off();
     }
 
     public getRoomAnswers(callBack: (answer: RTCSessionDescriptionInit) => void) {
@@ -32,7 +32,8 @@ class Client {
         if (!username || typeof username === "object") {
             throw new Error("Unauthenticated")
         }
-        const iGunChain = gunInstance.get("room").on(data => {
+        const room = gunInstance.get("room");
+        room.on(data => {
             if (data.type === "answer" && data.username !== username) {
                 callBack({
                     sdp: data.sdp,
@@ -40,7 +41,7 @@ class Client {
                 })
             }
         });
-        return () => iGunChain.off();
+        return () => room.off();
     }
 
     public createRoomOffer(offer: RTCSessionDescriptionInit) {
@@ -140,9 +141,9 @@ class Client {
         if (!username || typeof username === "object") {
             throw new Error("Unauthenticated")
         }
-        const iGunChain = gunInstance.get("ice-candidate").on(data => {
+        const chain = gunInstance.get("ice-candidate");
+        chain.on(data => {
             const {
-                username,
                 candidate,
                 usernameFragment,
                 sdpMid,
@@ -154,7 +155,7 @@ class Client {
                 });
             }
         });
-        return () => iGunChain.off();
+        return () => chain.off();
     }
 
 }
