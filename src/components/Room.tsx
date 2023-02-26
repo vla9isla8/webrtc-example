@@ -2,7 +2,7 @@ import {useCallback, useEffect, useState} from "react";
 import Client from "../db/Client";
 import Call from "./Call";
 
-const configuration = {'iceServers': [{'urls': 'stun:stun.l.google.com:19302'}]}
+const configuration = {}
 
 
 function Room({client}: { client: Client }) {
@@ -53,8 +53,7 @@ function Room({client}: { client: Client }) {
                 setConnection(peerConnection);
                 const descriptionInit = await peerConnection.createOffer({
                     offerToReceiveVideo: true,
-                    offerToReceiveAudio: true,
-                    iceRestart: true
+                    offerToReceiveAudio: true
                 });
                 const roomAnswersClose = client.getRoomAnswers(async (answer) => {
                     console.log("ANSWER", answer);
