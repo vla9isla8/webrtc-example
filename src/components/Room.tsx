@@ -2,7 +2,7 @@ import {useCallback, useEffect, useState} from "react";
 import Client from "../db/Client";
 import Call from "./Call";
 
-const configuration = {}
+const configuration = {'iceServers': [{'urls': 'stun:stun.l.google.com:19302'}]}
 
 function Room({client}: { client: Client }) {
     const [connection, setConnection] = useState<RTCPeerConnection | null>(null);
