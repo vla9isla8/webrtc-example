@@ -1,39 +1,31 @@
-import {useEffect, useLayoutEffect, useRef, useState} from "react";
+import {useEffect, useLayoutEffect, useRef} from "react";
 import "./styles.css";
 
 function Call({connection}: { connection: RTCPeerConnection }) {
     const ref = useRef<HTMLVideoElement>(null);
 
-    const [state, setState] = useState<RTCPeerConnectionState>(connection.connectionState);
-
     useEffect(() => {
-        const listener = () => {
-            setState(connection.connectionState);
-        };
-        connection.addEventListener("connectionstatechange", listener);
-        return () => connection.removeEventListener("connectionstatechange", listener);
-    }, [connection])
+        const dataChannel = connection.createDataChannel("text");
+        dataChannel.addEventListener("open", () => {
+            console.log("Opened!")
+            dataChannel.send("Hi!");
+            console.log("sent!")
+        })
+        dataChannel.addEventListener("error", ev => {
+            console.log("Error!", ev)
+        });
+        dataChannel.addEventListener("message", console.log);
+        const constraints = {'video': true, 'audio': true};
+        navigator.mediaDevices.getUserMedia(constraints).then(stream => {
+            stream.getTracks().forEach(track => {
+                connection.addTrack(track, stream);
+            });
+        });
 
-    useEffect(() => {
-        if (state === 'connected') {
-            const dataChannel = connection.createDataChannel("text");
-            dataChannel.addEventListener("open", () => {
-                console.log("Opened!")
-                dataChannel.send("Hi!");
-                console.log("sent!")
-            })
-            dataChannel.addEventListener("error", ev => {
-                console.log("Error!", ev)
-            });
-            dataChannel.addEventListener("message", console.log);
-            const constraints = {'video': true, 'audio': true};
-            navigator.mediaDevices.getUserMedia(constraints).then(stream => {
-                stream.getTracks().forEach(track => {
-                    connection.addTrack(track, stream);
-                });
-            });
+        return () => {
+            dataChannel.close()
         }
-    }, [state, connection])
+    }, [connection])
 
     useLayoutEffect(() => {
         const onTrack = (ev: RTCTrackEvent) => {
@@ -49,7 +41,6 @@ function Call({connection}: { connection: RTCPeerConnection }) {
 
     return (
         <div className="video">
-            <h5>{state}</h5>
             <video ref={ref} controls/>
         </div>
     );
